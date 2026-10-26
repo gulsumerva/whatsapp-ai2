@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WhatsApp</title>
+  <meta name="theme-color" content="#075e54" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="#075e54" />
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea {
+      user-select: text;
+    }
+    /* Authentic WhatsApp Android Colors */
+    :root {
+      --wa-teal-dark: #075e54;
+      --wa-teal-light: #128c7e;
+      --wa-green: #25d366;
+      --wa-chat-bg: #efeae2;
+      --wa-outgoing-bubble: #d9fdd3;
+      --wa-incoming-bubble: #ffffff;
+      --wa-tick-blue: #53bdeb;
+      --wa-tick-grey: #8696a0;
+      --wa-system-badge: #ffeecd;
+    }
+
+    /* WhatsApp Doodle Pattern Background */
+    .whatsapp-bg {
+      background-color: var(--wa-chat-bg);
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(200, 190, 180, 0.15) 1px, transparent 1px),
+        linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%),
+        linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%);
+      background-size: 24px 24px, 48px 48px, 48px 48px;
+      background-position: 0 0, 0 0, 24px 24px;
+    }
+
+    /* Message Bubble Tails */
+    .bubble-out {
+      position: relative;
+      background-color: var(--wa-outgoing-bubble);
+      border-top-right-radius: 0px !important;
+    }
+    .bubble-out::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -8px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-top-color: var(--wa-outgoing-bubble);
+      border-right: 0;
+    }
+
+    .bubble-in {
+      position: relative;
+      background-color: var(--wa-incoming-bubble);
+      border-top-left-radius: 0px !important;
+    }
+    .bubble-in::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -8px;
+      width: 0;
+      height: 0;
+      border: 8px solid transparent;
+      border-top-color: var(--wa-incoming-bubble);
+      border-left: 0;
+    }
+
+    /* Audio waveform bars animation */
+    .voice-bar {
+      transition: height 0.15s ease;
+    }
+
+    /* Smooth Android Elevation Shadows */
+    .elevation-1 { box-shadow: 0 1px 2px rgba(0,0,0,0.14); }
+    .elevation-2 { box-shadow: 0 2px 4px rgba(0,0,0,0.18); }
+    .elevation-4 { box-shadow: 0 4px 8px rgba(0,0,0,0.22); }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-gray-100 h-screen w-screen overflow-hidden flex justify-center items-center">
+
+  <!-- Mobile Container Shell -->
+  <div id="appContainer" class="relative w-full max-w-md h-full bg-white flex flex-col overflow-hidden shadow-2xl">
+
+    <!-- ==================== SCREEN 1: CHAT LIST SCREEN ==================== -->
+    <div id="chatListScreen" class="flex flex-col h-full w-full">
+      <!-- WhatsApp Android Header -->
+      <header class="bg-[#075E54] text-white px-4 py-3 flex items-center justify-between elevation-2 z-10">
+        <h1 class="text-xl font-medium tracking-wide">WhatsApp</h1>
+        <div class="flex items-center space-x-4">
+          <button onclick="toggleModal('searchModal')" class="hover:opacity-80 p-1"><i data-lucide="search" class="w-5 h-5"></i></button>
+          <button onclick="toggleOptionsMenu(event)" class="hover:opacity-80 p-1"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
+        </div>
+      </header>
+
+      <!-- Android Tabs (Chats, Status, Calls) -->
+      <div class="bg-[#075E54] text-teal-100 flex text-sm font-medium uppercase tracking-wider elevation-1">
+        <div class="w-12 py-3 flex justify-center items-center"><i data-lucide="camera" class="w-5 h-5 text-teal-200"></i></div>
+        <div class="flex-1 py-3 text-center border-b-2 border-white text-white font-bold flex items-center justify-center space-x-1">
+          <span>CHATS</span>
+          <span id="totalUnreadBadge" class="bg-white text-[#075E54] text-xs font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">2</span>
+        </div>
+        <div class="flex-1 py-3 text-center text-teal-200">STATUS</div>
+        <div class="flex-1 py-3 text-center text-teal-200">CALLS</div>
+      </div>
+
+      <!-- Chats List -->
+      <div id="chatsContainer" class="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <!-- Dynamic chat items populated by JS -->
+      </div>
+
+      <!-- Floating Action Button (New Chat) -->
+      <button onclick="openNewChatModal()" class="absolute bottom-6 right-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center elevation-4 hover:scale-105 active:scale-95 transition-transform z-20">
+        <i data-lucide="message-square-plus" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <!-- ==================== SCREEN 2: ACTIVE CHAT SCREEN ==================== -->
+    <div id="chatRoomScreen" class="hidden flex-col h-full w-full whatsapp-bg relative">
+      <!-- Chat Header -->
+      <header class="bg-[#075E54] text-white px-2 py-2 flex items-center justify-between elevation-2 z-20">
+        <div class="flex items-center space-x-1 flex-1 min-w-0">
+          <button onclick="showChatList()" class="p-1.5 hover:bg-white/10 rounded-full active:scale-90 transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <!-- Contact Avatar -->
+          <div onclick="openContactDetailModal()" class="relative cursor-pointer shrink-0">
+            <img id="chatHeaderAvatar" src="" class="w-10 h-10 rounded-full object-cover border border-white/20" alt="Avatar" />
+            <span id="chatHeaderOnlineDot" class="hidden absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+          </div>
+          <!-- Contact Info -->
+          <div onclick="openContactDetailModal()" class="ml-2 flex-1 min-w-0 cursor-pointer">
+            <h2 id="chatHeaderName" class="font-medium text-base truncate leading-tight">Name</h2>
+            <p id="chatHeaderStatus" class="text-xs text-teal-100 truncate">online</p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center space-x-2 text-white shrink-0">
+          <button onclick="triggerCallSimulation('video')" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="video" class="w-5 h-5"></i></button>
+          <button onclick="triggerCallSimulation('audio')" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="phone" class="w-5 h-5"></i></button>
+          <button onclick="toggleChatOptionsMenu(event)" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
+        </div>
+      </header>
+
+      <!-- Mode & Sender Control Ribbon (Simulator & AI Companion Switcher) -->
+      <div class="bg-[#128C7E] px-3 py-1.5 text-white text-xs flex items-center justify-between shadow-inner z-10">
+        <div class="flex items-center space-x-1.5">
+          <span class="font-medium opacity-90">Sender:</span>
+          <!-- Sender Switcher -->
+          <select id="senderSelector" onchange="handleSenderModeChange()" class="bg-[#075E54] text-white text-xs rounded px-2 py-0.5 border border-teal-300/40 focus:outline-none">
+            <option value="me">Me (Outgoing)</option>
+            <option value="them">Them (Incoming)</option>
+            <option value="ai">🤖 AI Auto-Reply</option>
+          </select>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="flex items-center space-x-2">
+          <button onclick="openSystemMessageModal()" title="Add Date Badge / System Info" class="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded flex items-center space-x-1 text-[11px]">
+            <i data-lucide="shield-alert" class="w-3 h-3"></i>
+            <span>Badge</span>
+          </button>
+          <button onclick="toggleSimulationConfig()" title="Simulation Settings" class="px-1.5 py-0.5 bg-white/20 hover:bg-white/30 rounded">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat Messages Scrollable Feed -->
+      <div id="messagesFeed" class="flex-1 overflow-y-auto p-3 space-y-2.5 pb-24" onclick="closeAllPopups()">
+        <!-- Messages rendered by JS -->
+      </div>
+
+      <!-- Typing Indicator Preview -->
+      <div id="typingIndicator" class="hidden absolute bottom-16 left-4 bg-white text-gray-600 text-xs px-3 py-1.5 rounded-full elevation-1 flex items-center space-x-2 animate-pulse z-10">
+        <span class="inline-block w-2 h-2 bg-green-600 rounded-full"></span>
+        <span id="typingIndicatorText">Typing...</span>
+      </div>
+
+      <!-- Bottom Chat Input Bar -->
+      <footer class="p-2 flex items-end space-x-2 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-20">
+        <div class="flex-1 bg-white rounded-3xl flex items-center px-3 py-1.5 elevation-2 border border-gray-200">
+          <button onclick="insertQuickEmoji('😊')" class="text-gray-500 hover:text-gray-700 mr-2"><i data-lucide="smile" class="w-6 h-6"></i></button>
+          <textarea id="messageInput" rows="1" placeholder="Message" class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none resize-none max-h-24 py-1" oninput="autoGrow(this); handleInputState(this)"></textarea>
+          
+          <!-- Attachment button for local image upload -->
+          <label class="text-gray-500 hover:text-gray-700 mx-1.5 cursor-pointer">
+            <i data-lucide="paperclip" class="w-5 h-5"></i>
+            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)" />
+          </label>
+          
+          <!-- Camera quick trigger -->
+          <label class="text-gray-500 hover:text-gray-700 ml-1 cursor-pointer">
+            <i data-lucide="camera" class="w-5 h-5"></i>
+            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)" />
+          </label>
+        </div>
+
+        <!-- Mic / Send Circular Action Button -->
+        <button id="sendActionBtn" onclick="handleSendOrMicAction()" class="w-12 h-12 bg-[#128C7E] text-white rounded-full flex items-center justify-center elevation-2 active:scale-95 transition-transform shrink-0">
+          <i id="sendIconMic" data-lucide="mic" class="w-6 h-6"></i>
+          <i id="sendIconArrow" data-lucide="send" class="w-5 h-5 hidden"></i>
+        </button>
+      </footer>
+
+      <!-- Voice Recording In-Progress Banner -->
+      <div id="recordingBanner" class="hidden absolute bottom-2 left-2 right-16 bg-red-600 text-white rounded-3xl p-3 flex items-center justify-between elevation-2 z-30">
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 rounded-full bg-white animate-ping"></div>
+          <span class="text-sm font-medium">Recording Voice Note...</span>
+          <span id="recordingTimer" class="font-mono text-sm ml-2">00:00</span>
+        </div>
+        <button onclick="cancelVoiceRecording()" class="text-xs bg-red-800 px-2 py-1 rounded-full font-bold">CANCEL</button>
+      </div>
+    </div>
+
+    <!-- ==================== UNIVERSAL POPUPS & MODALS ==================== -->
+
+    <!-- Top 3-Dot Options Dropdown Menu -->
+    <div id="optionsDropdown" class="hidden absolute top-12 right-3 w-52 bg-white rounded-md shadow-2xl py-1 z-50 text-gray-700 text-sm border border-gray-100">
+      <button onclick="openSettingsModal()" class="w-full text-left px-4 py-2.5 hover:bg-gray-100 flex items-center space-x-2">
+        <i data-lucide="bot" class="w-4 h-4 text-teal-700"></i>
+        <span>AI Companion & Settings</span>
+      </button>
+      <button onclick="exportDataBackup()" class="w-full text-left px-4 py-2.5 hover:bg-gray-100 flex items-center space-x-2">
+        <i data-lucide="download" class="w-4 h-4 text-teal-700"></i>
+        <span>Export Data Backup (JSON)</span>
+      </button>
+      <label class="w-full text-left px-4 py-2.5 hover:bg-gray-100 flex items-center space-x-2 cursor-pointer">
+        <i data-lucide="upload" class="w-4 h-4 text-teal-700"></i>
+        <span>Import Data Backup</span>
+        <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importDataBackup(event)">
+      </label>
+      <div class="border-t my-1"></div>
+      <button onclick="resetAllDataConfirmation()" class="w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-600 flex items-center space-x-2">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span>Clear All Data</span>
+      </button>
+    </div>
+
+    <!-- Chat Options 3-Dot Dropdown Menu -->
+    <div id="chatOptionsDropdown" class="hidden absolute top-12 right-3 w-52 bg-white rounded-md shadow-2xl py-1 z-50 text-gray-700 text-sm border border-gray-100">
+      <button onclick="openContactDetailModal()" class="w-full text-left px-4 py-2.5 hover:bg-gray-100">Contact Info & Mode</button>
+      <button onclick="openSystemMessageModal()" class="w-full text-left px-4 py-2.5 hover:bg-gray-100">Insert Date / System Badge</button>
+      <button onclick="clearCurrentChatMessages()" class="w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-600">Clear Chat Messages</button>
+    </div>
+
+    <!-- Modal: New Direct / Group Chat -->
+    <div id="newChatModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="bg-[#075E54] text-white p-4 flex justify-between items-center">
+          <h3 class="font-medium text-lg">Create New Chat</h3>
+          <button onclick="toggleModal('newChatModal')" class="text-white hover:opacity-75"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-4 space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Chat Type</label>
+            <div class="flex space-x-2">
+              <button id="chatTypeDirectBtn" onclick="setChatTypeForm('direct')" class="flex-1 py-1.5 text-xs font-bold rounded border-2 border-[#128C7E] bg-teal-50 text-[#128C7E]">Direct (1-on-1)</button>
+              <button id="chatTypeGroupBtn" onclick="setChatTypeForm('group')" class="flex-1 py-1.5 text-xs font-bold rounded border-2 border-gray-200 text-gray-600">Group Chat</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Profile Name</label>
+            <input type="text" id="newChatNameInput" placeholder="e.g. John Doe or Family Group" class="w-full border rounded p-2 text-sm focus:border-[#128C7E] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Status Subtitle / Last Seen</label>
+            <input type="text" id="newChatStatusInput" value="online" class="w-full border rounded p-2 text-sm focus:border-[#128C7E] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Profile Picture (Avatar)</label>
+            <input type="file" id="newChatAvatarInput" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-teal-50 file:text-[#128C7E] file:font-semibold" />
+          </div>
+          <!-- Group participants field (visible only if group) -->
+          <div id="groupMembersField" class="hidden">
+            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Group Members (Comma-separated)</label>
+            <input type="text" id="newGroupMembersInput" placeholder="Sarah, Mike, Alex, Emily" class="w-full border rounded p-2 text-sm focus:border-[#128C7E] focus:outline-none" />
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 flex justify-end space-x-2 border-t">
+          <button onclick="toggleModal('newChatModal')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+          <button onclick="saveNewChat()" class="px-5 py-2 text-sm font-semibold text-white bg-[#128C7E] hover:bg-[#075E54] rounded">Create Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Contact Info & AI Persona Config -->
+    <div id="contactDetailModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="bg-[#075E54] text-white p-4 flex justify-between items-center">
+          <h3 class="font-medium text-lg">Contact / Chat Settings</h3>
+          <button onclick="toggleModal('contactDetailModal')" class="text-white hover:opacity-75"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-4 space-y-3 max-h-[70vh] overflow-y-auto text-sm">
+          <div class="flex items-center space-x-4">
+            <img id="detailAvatarPreview" src="" class="w-16 h-16 rounded-full object-cover border-2 border-teal-600" />
+            <div class="flex-1">
+              <label class="block text-xs font-bold text-gray-600">Update Avatar Photo</label>
+              <input type="file" id="editAvatarInput" accept="image/*" onchange="handleAvatarChange(event)" class="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-teal-50 file:text-teal-700" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase">Contact Display Name</label>
+            <input type="text" id="editContactNameInput" class="w-full border rounded p-2 focus:border-[#128C7E] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 uppercase">Status / Subtitle</label>
+            <input type="text" id="editContactStatusInput" class="w-full border rounded p-2 focus:border-[#128C7E] focus:outline-none" placeholder="online, typing..., or last seen today at 14:22" />
+          </div>
+          <div class="border-t pt-2">
+            <h4 class="font-semibold text-teal-800 text-xs uppercase mb-1">AI Companion Backstory / Persona for this Chat</h4>
+            <p class="text-[11px] text-gray-500 mb-1">Dictate how this character talks when "AI Auto-Reply" mode is active.</p>
+            <textarea id="editContactPersonaInput" rows="3" class="w-full border rounded p-2 text-xs focus:border-[#128C7E] focus:outline-none" placeholder="e.g. Sarcastic best friend, uses lowercase and slang, loves sci-fi movies, answers quickly."></textarea>
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 flex justify-end space-x-2 border-t">
+          <button onclick="toggleModal('contactDetailModal')" class="px-4 py-1.5 text-gray-600 hover:bg-gray-100 rounded text-sm">Cancel</button>
+          <button onclick="saveContactDetails()" class="px-4 py-1.5 font-semibold text-white bg-[#128C7E] hover:bg-[#075E54] rounded text-sm">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Edit Existing Message -->
+    <div id="editMessageModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="bg-[#075E54] text-white p-3 flex justify-between items-center">
+          <h3 class="font-medium text-base">Edit Message</h3>
+          <button onclick="toggleModal('editMessageModal')" class="text-white hover:opacity-75"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-4 space-y-3 text-sm">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Message Text</label>
+            <textarea id="editMsgTextInput" rows="2" class="w-full border rounded p-2 text-sm focus:outline-none focus:border-[#128C7E]"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">Sender</label>
+              <select id="editMsgSenderInput" class="w-full border rounded p-1.5 text-xs">
+                <option value="me">Me (Outgoing)</option>
+                <option value="them">Them (Incoming)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">Timestamp</label>
+              <input type="text" id="editMsgTimeInput" placeholder="10:45 AM" class="w-full border rounded p-1.5 text-xs" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Read Receipt Checkmarks</label>
+            <select id="editMsgTicksInput" class="w-full border rounded p-1.5 text-xs">
+              <option value="single">Single Grey Tick (Sent)</option>
+              <option value="double">Double Grey Ticks (Delivered)</option>
+              <option value="blue">Double Blue Ticks (Read)</option>
+            </select>
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 flex justify-between items-center border-t">
+          <button onclick="deleteActiveMessage()" class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded flex items-center space-x-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Delete</span>
+          </button>
+          <div class="space-x-2">
+            <button onclick="toggleModal('editMessageModal')" class="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+            <button onclick="saveEditedMessage()" class="px-4 py-1.5 text-xs font-semibold text-white bg-[#128C7E] hover:bg-[#075E54] rounded">Apply</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Insert Date / Yellow Encryption System Badge -->
+    <div id="systemMessageModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="bg-[#075E54] text-white p-3 flex justify-between items-center">
+          <h3 class="font-medium text-base">Insert System Badge / Divider</h3>
+          <button onclick="toggleModal('systemMessageModal')" class="text-white hover:opacity-75"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-4 space-y-3 text-sm">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Badge Type</label>
+            <select id="systemBadgeType" onchange="handleSystemBadgeTypeChange()" class="w-full border rounded p-1.5 text-xs">
+              <option value="date">Date Divider (e.g. TODAY, YESTERDAY)</option>
+              <option value="encryption">Yellow Encryption Shield Notice</option>
+              <option value="custom">Custom Center Announcement</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Badge Text</label>
+            <input type="text" id="systemBadgeTextInput" value="TODAY" class="w-full border rounded p-2 text-sm focus:outline-none" />
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 flex justify-end space-x-2 border-t">
+          <button onclick="toggleModal('systemMessageModal')" class="px-3 py-1.5 text-xs text-gray-600 rounded">Cancel</button>
+          <button onclick="addSystemBadgeMessage()" class="px-4 py-1.5 text-xs font-semibold text-white bg-[#128C7E] rounded">Insert Badge</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Global Settings & AI API Key -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="bg-[#075E54] text-white p-4 flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+            <h3 class="font-medium text-base">AI Companion Settings</h3>
+          </div>
+          <button onclick="toggleModal('settingsModal')" class="text-white hover:opacity-75"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-4 space-y-3 max-h-[70vh] overflow-y-auto text-xs text-gray-700">
+          <div>
+            <label class="block font-bold mb-1">API Provider</label>
+            <select id="apiProviderSelect" onchange="toggleApiEndpointFields()" class="w-full border rounded p-1.5">
+              <option value="groq">Groq Cloud (Fast & Free Tier)</option>
+              <option value="openai">OpenAI (GPT-4o / GPT-3.5)</option>
+              <option value="custom">Custom OpenAI-compatible Endpoint</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="gsk_... or sk-..." class="w-full border rounded p-2 font-mono text-xs focus:outline-none focus:border-teal-600" />
+            <p class="text-[10px] text-gray-400 mt-0.5">Stored strictly locally in your browser's LocalStorage.</p>
+          </div>
+          <div id="customEndpointField" class="hidden">
+            <label class="block font-bold mb-1">API Base URL</label>
+            <input type="text" id="apiEndpointInput" value="https://api.groq.com/openai/v1" class="w-full border rounded p-1.5 font-mono text-xs" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Model Name</label>
+            <input type="text" id="apiModelInput" value="llama-3.3-70b-versatile" class="w-full border rounded p-1.5 font-mono text-xs" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Default Persona Rules</label>
+            <textarea id="apiDefaultSystemPrompt" rows="3" class="w-full border rounded p-1.5 text-xs text-gray-700">You are a real close friend texting on WhatsApp. Never sound like an AI assistant. Text informally: short casual phrases, occasional typos or lowercase, realistic reactions, emojis. Ask fun or curious questions naturally.</textarea>
+          </div>
+        </div>
+        <div class="p-3 bg-gray-50 flex justify-end space-x-2 border-t">
+          <button onclick="toggleModal('settingsModal')" class="px-3 py-1.5 text-xs text-gray-600 rounded">Cancel</button>
+          <button onclick="saveGlobalSettings()" class="px-4 py-1.5 text-xs font-semibold text-white bg-[#128C7E] rounded">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Search Chats -->
+    <div id="searchModal" class="hidden fixed inset-0 bg-black/60 flex items-start justify-center p-4 z-50 pt-10">
+      <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div class="p-2 border-b flex items-center space-x-2">
+          <i data-lucide="search" class="w-5 h-5 text-gray-400 ml-2"></i>
+          <input type="text" id="searchChatsInput" oninput="handleSearchChats(this.value)" placeholder="Search chats or messages..." class="w-full p-2 text-sm focus:outline-none" />
+          <button onclick="toggleModal('searchModal')" class="p-2 text-gray-500 hover:text-gray-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div id="searchResults" class="max-h-60 overflow-y-auto p-2 divide-y text-xs text-gray-600">
+          <div class="p-3 text-center text-gray-400">Type to find messages or contacts</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Audio Player Engine (for Voice Notes) -->
+  <audio id="globalVoicePlayer" class="hidden"></audio>
+
+  <!-- ==================== JAVASCRIPT APPLICATION LOGIC ==================== -->
+  <script>
+    /* ----------------------------------------------------
+       1. DATA STRUCTURE & DEFAULT SEED STATE
+       ---------------------------------------------------- */
+    const STORAGE_KEY = "FAKE_WHATSAPP_DATA_V2";
+    const SETTINGS_KEY = "FAKE_WHATSAPP_SETTINGS_V2";
+
+    // Default Avatar SVG
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23B0BEC5'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+    const AI_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23075E54'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23E0F2F1'/%3E%3Cpath d='M12 6a4 4 0 0 1 4 4v1h1a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v1a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-1H7a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h1v-1a4 4 0 0 1 4-4zm-2 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z' fill='%23075E54'/%3E%3C/svg%3E";
+
+    let appState = {
+      activeChatId: null,
+      chats: [
+        {
+          id: "chat-1",
+          name: "Sarah Parker",
+          avatar: DEFAULT_AVATAR,
+          status: "online",
+          isGroup: false,
+          persona: "Sarah is a lively, witty college friend who talks in short sentences, uses occasional slang like 'omg' and 'lol', and loves sharing spontaneous life updates.",
+          messages: [
+            { id: "m-0", type: "system", systemType: "encryption", text: "Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them. Tap to learn more." },
+            { id: "m-1", type: "system", systemType: "date", text: "TODAY" },
+            { id: "m-2", sender: "them", type: "text", text: "Hey! Are you coming to the coffee shop later?", time: "10:14 AM", ticks: "blue" },
+            { id: "m-3", sender: "me", type: "text", text: "Yeah absolutely, just finishing up a quick task!", time: "10:15 AM", ticks: "blue" },
+            { id: "m-4", sender: "them", type: "text", text: "Awesome! Grab me an iced latte if you reach first ☕", time: "10:16 AM", ticks: "blue" }
+          ]
+        },
+        {
+          id: "chat-2",
+          name: "Weekend Trips 🏕️",
+          avatar: DEFAULT_AVATAR,
+          status: "Alex, Mike, Sarah",
+          isGroup: true,
+          members: ["Sarah", "Alex", "Mike"],
+          persona: "A lively outdoors adventure group chat.",
+          messages: [
+            { id: "m-20", type: "system", systemType: "date", text: "YESTERDAY" },
+            { id: "m-21", sender: "them", senderName: "Alex", type: "text", text: "Did anyone book the campsite permits yet?", time: "08:30 PM", ticks: "double" },
+            { id: "m-22", sender: "me", type: "text", text: "I did! We have spot #14 near the lake.", time: "08:35 PM", ticks: "blue" }
+          ]
+        }
+      ]
+    };
+
+    let appSettings = {
+      provider: "groq",
+      apiKey: "",
+      endpoint: "https://api.groq.com/openai/v1",
+      model: "llama-3.3-70b-versatile",
+      defaultSystemPrompt: "You are a real close friend texting on WhatsApp. Never sound like an AI assistant. Text informally: short casual phrases, occasional typos or lowercase, realistic reactions, emojis. Ask fun or curious questions naturally."
+    };
+
+    // Voice Note MediaRecorder variables
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordStartTime = 0;
+    let recordTimerInterval = null;
+
+    // Active Message being edited
+    let activeEditingMessageId = null;
+
+    /* ----------------------------------------------------
+       2. INITIALIZATION & STORAGE
+       ---------------------------------------------------- */
+    window.addEventListener("DOMContentLoaded", () => {
+      loadStateFromStorage();
+      renderChatList();
+      lucide.createIcons();
+    });
+
+    function loadStateFromStorage() {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          appState = JSON.parse(savedData);
+        }
+        const savedSettings = localStorage.getItem(SETTINGS_KEY);
+        if (savedSettings) {
+          appSettings = JSON.parse(savedSettings);
+        }
+      } catch (err) {
+        console.error("Error loading localStorage data:", err);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (err) {
+        console.error("Error saving state to localStorage:", err);
+      }
+    }
+
+    function saveSettings() {
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+      } catch (err) {
+        console.error("Error saving settings to localStorage:", err);
+      }
+    }
+
+    /* ----------------------------------------------------
+       3. NAVIGATION & VIEW CONTROLLERS
+       ---------------------------------------------------- */
+    function showChatList() {
+      document.getElementById("chatRoomScreen").classList.add("hidden");
+      document.getElementById("chatRoomScreen").classList.remove("flex");
+      document.getElementById("chatListScreen").classList.remove("hidden");
+      document.getElementById("chatListScreen").classList.add("flex");
+      appState.activeChatId = null;
+      renderChatList();
+    }
+
+    function openChat(chatId) {
+      appState.activeChatId = chatId;
+      const chat = appState.chats.find(c => c.id === chatId);
+      if (!chat) return;
+
+      document.getElementById("chatListScreen").classList.add("hidden");
+      document.getElementById("chatListScreen").classList.remove("flex");
+      document.getElementById("chatRoomScreen").classList.remove("hidden");
+      document.getElementById("chatRoomScreen").classList.add("flex");
+
+      // Update header
+      document.getElementById("chatHeaderName").innerText = chat.name;
+      document.getElementById("chatHeaderStatus").innerText = chat.status || "online";
+      document.getElementById("chatHeaderAvatar").src = chat.avatar || DEFAULT_AVATAR;
+      
+      const onlineDot = document.getElementById("chatHeaderOnlineDot");
+      if (chat.status && chat.status.toLowerCase().includes("online")) {
+        onlineDot.classList.remove("hidden");
+      } else {
+        onlineDot.classList.add("hidden");
+      }
+
+      // Update sender options dropdown for group / direct
+      const senderSelector = document.getElementById("senderSelector");
+      senderSelector.innerHTML = `
+        <option value="me">Me (Outgoing)</option>
+        <option value="them">${chat.isGroup ? "Participant" : "Them (Incoming)"}</option>
+        <option value="ai">🤖 AI Auto-Reply</option>
+      `;
+
+      if (chat.isGroup && chat.members && chat.members.length > 0) {
+        chat.members.forEach(member => {
+          const opt = document.createElement("option");
+          opt.value = "member:" + member;
+          opt.innerText = member + " (Incoming)";
+          senderSelector.appendChild(opt);
+        });
+      }
+
+      renderMessages();
+      lucide.createIcons();
+    }
+
+    /* ----------------------------------------------------
+       4. CHAT LIST RENDERING
+       ---------------------------------------------------- */
+    function renderChatList() {
+      const container = document.getElementById("chatsContainer");
+      container.innerHTML = "";
+
+      if (appState.chats.length === 0) {
+        container.innerHTML = `
+          <div class="text-center p-8 text-gray-400">
+            <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
+            <p>No chats yet. Tap the green button below to start one!</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      appState.chats.forEach(chat => {
+        const lastMsg = chat.messages[chat.messages.length - 1];
+        let lastMsgText = "No messages yet";
+        let lastMsgTime = "";
+        let tickIcon = "";
+
+        if (lastMsg) {
+          lastMsgTime = lastMsg.time || "";
+          if (lastMsg.type === "text") lastMsgText = lastMsg.text;
+          else if (lastMsg.type === "image") lastMsgText = "📷 Photo";
+          else if (lastMsg.type === "audio") lastMsgText = "🎤 Voice note (" + (lastMsg.duration || "0:05") + ")";
+          else if (lastMsg.type === "system") lastMsgText = "ℹ️ " + lastMsg.text;
+
+          if (lastMsg.sender === "me" && lastMsg.type !== "system") {
+            const color = lastMsg.ticks === "blue" ? "text-[#53BDEB]" : "text-gray-400";
+            tickIcon = `<i data-lucide="check-check" class="w-3.5 h-3.5 inline mr-1 ${color}"></i>`;
+          }
+        }
+
+        const chatItem = document.createElement("div");
+        chatItem.className = "flex items-center px-4 py-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition";
+        chatItem.onclick = () => openChat(chat.id);
+
+        chatItem.innerHTML = `
+          <div class="relative shrink-0 mr-3">
+            <img src="${chat.avatar || DEFAULT_AVATAR}" class="w-13 h-13 rounded-full w-12 h-12 object-cover" alt="${chat.name}" />
+            ${chat.isGroup ? `<span class="absolute bottom-0 right-0 bg-[#075E54] text-white p-0.5 rounded-full"><i data-lucide="users" class="w-3 h-3"></i></span>` : ""}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-baseline mb-0.5">
+              <h3 class="text-base font-medium text-gray-900 truncate">${chat.name}</h3>
+              <span class="text-xs text-gray-500 shrink-0 ml-2">${lastMsgTime}</span>
+            </div>
+            <p class="text-xs text-gray-500 truncate flex items-center">
+              ${tickIcon}
+              <span class="truncate">${lastMsgText}</span>
+            </p>
+          </div>
+        `;
+        container.appendChild(chatItem);
+      });
+
+      document.getElementById("totalUnreadBadge").innerText = appState.chats.length;
+      lucide.createIcons();
+    }
+
+    /* ----------------------------------------------------
+       5. MESSAGES FEED RENDERING & BUBBLE CREATION
+       ---------------------------------------------------- */
+    function renderMessages() {
+      const feed = document.getElementById("messagesFeed");
+      feed.innerHTML = "";
+
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      chat.messages.forEach(msg => {
+        const bubble = createMessageElement(msg, chat);
+        feed.appendChild(bubble);
+      });
+
+      // Scroll to bottom
+      feed.scrollTop = feed.scrollHeight;
+      lucide.createIcons();
+    }
+
+    function createMessageElement(msg, chat) {
+      const wrapper = document.createElement("div");
+      wrapper.id = `msg-wrap-${msg.id}`;
+
+      // System badges (Center pinned)
+      if (msg.type === "system") {
+        wrapper.className = "flex justify-center my-2 px-4";
+        if (msg.systemType === "encryption") {
+          wrapper.innerHTML = `
+            <div onclick="openMessageEditor('${msg.id}')" class="bg-[#FFEECD] text-[#54656F] text-[11px] leading-relaxed text-center px-3 py-2 rounded-lg elevation-1 max-w-[90%] flex items-center space-x-1 cursor-pointer">
+              <i data-lucide="lock" class="w-3 h-3 text-[#54656F] shrink-0 mr-1"></i>
+              <span>${msg.text}</span>
+            </div>
+          `;
+        } else {
+          // Date badges
+          wrapper.innerHTML = `
+            <div onclick="openMessageEditor('${msg.id}')" class="bg-white/90 text-gray-600 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-md elevation-1 cursor-pointer">
+              ${msg.text}
+            </div>
+          `;
+        }
+        return wrapper;
+      }
+
+      // Normal Sent or Received Message
+      const isOutgoing = msg.sender === "me";
+      wrapper.className = `flex ${isOutgoing ? "justify-end" : "justify-start"} my-1 px-1`;
+
+      const bubbleDiv = document.createElement("div");
+      bubbleDiv.className = `max-w-[80%] rounded-lg px-2.5 py-1.5 elevation-1 cursor-pointer transition-all ${
+        isOutgoing ? "bubble-out" : "bubble-in"
+      }`;
+      bubbleDiv.onclick = (e) => {
+        // Prevent audio player click from triggering message editor
+        if (e.target.closest("button") || e.target.closest("audio")) return;
+        openMessageEditor(msg.id);
+      };
+
+      // Group sender label
+      let senderHeader = "";
+      if (chat.isGroup && !isOutgoing && msg.senderName) {
+        senderHeader = `<div class="text-[11px] font-bold text-teal-800 mb-0.5">${msg.senderName}</div>`;
+      }
+
+      // Checkmark icon markup
+      let ticksMarkup = "";
+      if (isOutgoing) {
+        if (msg.ticks === "blue") {
+          ticksMarkup = `<i data-lucide="check-check" class="w-3.5 h-3.5 text-[#53BDEB] inline ml-1"></i>`;
+        } else if (msg.ticks === "double") {
+          ticksMarkup = `<i data-lucide="check-check" class="w-3.5 h-3.5 text-gray-500 inline ml-1"></i>`;
+        } else {
+          ticksMarkup = `<i data-lucide="check" class="w-3.5 h-3.5 text-gray-500 inline ml-1"></i>`;
+        }
+      }
+
+      const timeStampMarkup = `
+        <span class="text-[10px] text-gray-500 whitespace-nowrap ml-2 float-right mt-1 flex items-center">
+          ${msg.time || "12:00 PM"}
+          ${ticksMarkup}
+        </span>
+      `;
+
+      // Render by type: Text, Image, Audio Voice Note
+      if (msg.type === "text") {
+        bubbleDiv.innerHTML = `
+          ${senderHeader}
+          <div class="text-sm text-gray-900 break-words leading-relaxed inline">
+            ${escapeHtml(msg.text)}
+          </div>
+          ${timeStampMarkup}
+        `;
+      } else if (msg.type === "image") {
+        bubbleDiv.innerHTML = `
+          ${senderHeader}
+          <div class="rounded-md overflow-hidden mb-1">
+            <img src="${msg.mediaUrl}" class="w-full max-h-64 object-cover rounded" alt="Attached photo" />
+          </div>
+          ${msg.text ? `<div class="text-sm text-gray-900 break-words">${escapeHtml(msg.text)}</div>` : ""}
+          ${timeStampMarkup}
+        `;
+      } else if (msg.type === "audio") {
+        bubbleDiv.innerHTML = `
+          ${senderHeader}
+          <div class="flex items-center space-x-2 py-1 min-w-[210px]">
+            <button onclick="playVoiceNote('${msg.id}', '${msg.mediaUrl}')" id="voiceBtn-${msg.id}" class="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center shrink-0 shadow">
+              <i data-lucide="play" class="w-5 h-5 ml-0.5" id="voiceIcon-${msg.id}"></i>
+            </button>
+            <div class="flex-1">
+              <!-- Visual Mock Waveform -->
+              <div class="flex items-center space-x-0.5 h-6 mb-1">
+                <span class="w-1 h-3 bg-teal-600 rounded"></span>
+                <span class="w-1 h-5 bg-teal-600 rounded"></span>
+                <span class="w-1 h-2 bg-teal-500 rounded"></span>
+                <span class="w-1 h-6 bg-teal-700 rounded"></span>
+                <span class="w-1 h-4 bg-teal-600 rounded"></span>
+                <span class="w-1 h-3 bg-teal-500 rounded"></span>
+                <span class="w-1 h-5 bg-teal-700 rounded"></span>
+                <span class="w-1 h-2 bg-teal-600 rounded"></span>
+              </div>
+              <div class="flex justify-between items-center text-[10px] text-gray-500 font-mono">
+                <span id="voiceTime-${msg.id}">${msg.duration || "0:05"}</span>
+                <span>${msg.time} ${ticksMarkup}</span>
+              </div>
+            </div>
+            <div class="shrink-0 relative">
+              <img src="${isOutgoing ? DEFAULT_AVATAR : chat.avatar}" class="w-8 h-8 rounded-full object-cover border border-gray-300" />
+              <i data-lucide="mic" class="w-3 h-3 text-[#128C7E] absolute -bottom-1 -right-1 bg-white rounded-full p-0.5"></i>
+            </div>
+          </div>
+        `;
+      }
+
+      wrapper.appendChild(bubbleDiv);
+      return wrapper;
+    }
+
+    /* ----------------------------------------------------
+       6. MESSAGING & SIMULATOR DISPATCH
+       ---------------------------------------------------- */
+    function handleSendOrMicAction() {
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
+
+      if (text.length > 0) {
+        dispatchNewMessage({ type: "text", text: text });
+        input.value = "";
+        input.style.height = "auto";
+        handleInputState(input);
+      } else {
+        // Toggle voice recording
+        toggleVoiceRecording();
+      }
+    }
+
+    function dispatchNewMessage({ type, text = "", mediaUrl = "", duration = "" }) {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      const senderMode = document.getElementById("senderSelector").value;
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      let actualSender = "me";
+      let participantName = null;
+
+      if (senderMode === "them") {
+        actualSender = "them";
+      } else if (senderMode.startsWith("member:")) {
+        actualSender = "them";
+        participantName = senderMode.replace("member:", "");
+      }
+
+      const newMsg = {
+        id: "msg-" + Date.now(),
+        sender: actualSender,
+        senderName: participantName,
+        type: type,
+        text: text,
+        mediaUrl: mediaUrl,
+        duration: duration,
+        time: timeStr,
+        ticks: actualSender === "me" ? "single" : "blue"
+      };
+
+      chat.messages.push(newMsg);
+      saveState();
+      renderMessages();
+
+      // If sent by me, trigger realistic tick delivery
+      if (actualSender === "me") {
+        setTimeout(() => {
+          newMsg.ticks = "double";
+          saveState();
+          renderMessages();
+        }, 1000);
+
+        setTimeout(() => {
+          newMsg.ticks = "blue";
+          saveState();
+          renderMessages();
+        }, 2200);
+
+        // If AI Auto-Reply mode is turned ON, trigger the AI response!
+        if (senderMode === "ai") {
+          triggerAiCompanionReply(chat, text);
+        }
+      }
+    }
+
+    /* ----------------------------------------------------
+       7. AI COMPANION AUTO-REPLY MECHANISM
+       ---------------------------------------------------- */
+    async function triggerAiCompanionReply(chat, lastUserMessage) {
+      const typingIndicator = document.getElementById("typingIndicator");
+      const statusHeader = document.getElementById("chatHeaderStatus");
+
+      // Show typing indicator
+      typingIndicator.classList.remove("hidden");
+      statusHeader.innerText = "typing...";
+
+      // Prepare context & persona prompt
+      const persona = chat.persona || appSettings.defaultSystemPrompt;
+      const recentHistory = chat.messages
+        .filter(m => m.type === "text")
+        .slice(-6)
+        .map(m => ({
+          role: m.sender === "me" ? "user" : "assistant",
+          content: m.text
+        }));
+
+      const messagesPayload = [
+        {
+          role: "system",
+          content: `${persona}\nSTRICT RULES: Respond like a friend on WhatsApp. Keep it brief (1 to 2 casual sentences max). Never provide AI assistance or essays. Use casual punctuation or natural emojis.`
+        },
+        ...recentHistory
+      ];
+
+      // Realistic human delay between 2 to 3.5 seconds
+      const simulatedDelay = 2000 + Math.random() * 1500;
+
+      try {
+        let replyText = "";
+
+        if (appSettings.apiKey && appSettings.apiKey.trim().length > 0) {
+          // Send request to Groq / OpenAI compatible API
+          let endpoint = appSettings.endpoint;
+          if (appSettings.provider === "groq" && (!endpoint || endpoint.includes("openai.com"))) {
+            endpoint = "https://api.groq.com/openai/v1";
+          } else if (appSettings.provider === "openai" && (!endpoint || endpoint.includes("groq.com"))) {
+            endpoint = "https://api.openai.com/v1";
+          }
+
+          const response = await fetch(`${endpoint}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${appSettings.apiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model: appSettings.model || "llama-3.3-70b-versatile",
+              messages: messagesPayload,
+              max_tokens: 150,
+              temperature: 0.85
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`API error HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          replyText = data.choices[0]?.message?.content?.trim() || "hey! got your text!";
+        } else {
+          // Smart simulated fallback replies if no API key is provided
+          const smartFallbacks = [
+            "haha totally! wait what are you up to right now?",
+            "omg really?? no way 😂",
+            "yeah i was just thinking about that too!",
+            "sounds good to me, let's catch up properly in a bit",
+            "lol you always say that. text me once you're free!",
+            "wait tell me more, what happened next??"
+          ];
+          replyText = smartFallbacks[Math.floor(Math.random() * smartFallbacks.length)];
+        }
+
+        setTimeout(() => {
+          typingIndicator.classList.add("hidden");
+          statusHeader.innerText = "online";
+
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          chat.messages.push({
+            id: "msg-" + Date.now(),
+            sender: "them",
+            type: "text",
+            text: replyText,
+            time: timeStr,
+            ticks: "blue"
+          });
+
+          saveState();
+          renderMessages();
+        }, simulatedDelay);
+
+      } catch (error) {
+        console.warn("AI Companion API failed, falling back to smart simulated message:", error);
+        setTimeout(() => {
+          typingIndicator.classList.add("hidden");
+          statusHeader.innerText = "online";
+          chat.messages.push({
+            id: "msg-" + Date.now(),
+            sender: "them",
+            type: "text",
+            text: "haha yeah! my phone was lagging for a second 😂",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            ticks: "blue"
+          });
+          saveState();
+          renderMessages();
+        }, 1500);
+      }
+    }
+
+    /* ----------------------------------------------------
+       8. VOICE NOTE RECORDING (MediaRecorder API)
+       ---------------------------------------------------- */
+    async function toggleVoiceRecording() {
+      const banner = document.getElementById("recordingBanner");
+
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        // Stop and save
+        mediaRecorder.stop();
+        clearInterval(recordTimerInterval);
+        banner.classList.add("hidden");
+        return;
+      }
+
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result;
+            const durationSec = Math.max(1, Math.round((Date.now() - recordStartTime) / 1000));
+            const durationFormatted = `0:${durationSec < 10 ? '0' : ''}${durationSec}`;
+            dispatchNewMessage({ type: "audio", mediaUrl: base64Audio, duration: durationFormatted });
+          };
+          // Stop stream tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        recordStartTime = Date.now();
+        banner.classList.remove("hidden");
+        document.getElementById("recordingTimer").innerText = "00:00";
+
+        recordTimerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+          const min = Math.floor(elapsed / 60);
+          const sec = elapsed % 60;
+          document.getElementById("recordingTimer").innerText = 
+            `${min < 10 ? '0' : ''}${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }, 1000);
+
+      } catch (err) {
+        console.warn("Microphone access denied or unsupported, generating simulated voice note:", err);
+        // Fallback: Create a mock voice note item
+        dispatchNewMessage({
+          type: "audio",
+          mediaUrl: "",
+          duration: "0:06"
+        });
+      }
+    }
+
+    function cancelVoiceRecording() {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.ondataavailable = null;
+        mediaRecorder.onstop = null;
+        mediaRecorder.stop();
+      }
+      clearInterval(recordTimerInterval);
+      document.getElementById("recordingBanner").classList.add("hidden");
+    }
+
+    function playVoiceNote(msgId, mediaUrl) {
+      const audioPlayer = document.getElementById("globalVoicePlayer");
+      const icon = document.getElementById(`voiceIcon-${msgId}`);
+
+      if (!mediaUrl) {
+        // Mock beep tone using Web Audio API if no raw audio stream is available
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+        return;
+      }
+
+      if (audioPlayer.src === mediaUrl && !audioPlayer.paused) {
+        audioPlayer.pause();
+        if (icon) icon.setAttribute("data-lucide", "play");
+        lucide.createIcons();
+      } else {
+        audioPlayer.src = mediaUrl;
+        audioPlayer.play();
+        if (icon) icon.setAttribute("data-lucide", "pause");
+        lucide.createIcons();
+
+        audioPlayer.onended = () => {
+          if (icon) icon.setAttribute("data-lucide", "play");
+          lucide.createIcons();
+        };
+      }
+    }
+
+    /* ----------------------------------------------------
+       9. PHOTO SHARING / BASE64 IMAGE UPLOAD
+       ---------------------------------------------------- */
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Image = event.target.result;
+        dispatchNewMessage({ type: "image", mediaUrl: base64Image, text: "" });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    }
+
+    /* ----------------------------------------------------
+       10. MESSAGE EDITING & SYSTEM BADGES
+       ---------------------------------------------------- */
+    function openMessageEditor(msgId) {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      const msg = chat.messages.find(m => m.id === msgId);
+      if (!msg) return;
+
+      activeEditingMessageId = msgId;
+
+      document.getElementById("editMsgTextInput").value = msg.text || "";
+      document.getElementById("editMsgSenderInput").value = msg.sender || "me";
+      document.getElementById("editMsgTimeInput").value = msg.time || "12:00 PM";
+      document.getElementById("editMsgTicksInput").value = msg.ticks || "blue";
+
+      toggleModal("editMessageModal");
+    }
+
+    function saveEditedMessage() {
+      if (!activeEditingMessageId) return;
+
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      const msg = chat.messages.find(m => m.id === activeEditingMessageId);
+      if (!msg) return;
+
+      msg.text = document.getElementById("editMsgTextInput").value;
+      msg.sender = document.getElementById("editMsgSenderInput").value;
+      msg.time = document.getElementById("editMsgTimeInput").value;
+      msg.ticks = document.getElementById("editMsgTicksInput").value;
+
+      saveState();
+      renderMessages();
+      toggleModal("editMessageModal");
+    }
+
+    function deleteActiveMessage() {
+      if (!activeEditingMessageId) return;
+
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      chat.messages = chat.messages.filter(m => m.id !== activeEditingMessageId);
+      saveState();
+      renderMessages();
+      toggleModal("editMessageModal");
+    }
+
+    function openSystemMessageModal() {
+      toggleModal("systemMessageModal");
+    }
+
+    function handleSystemBadgeTypeChange() {
+      const type = document.getElementById("systemBadgeType").value;
+      const textInput = document.getElementById("systemBadgeTextInput");
+      if (type === "date") {
+        textInput.value = "TODAY";
+      } else if (type === "encryption") {
+        textInput.value = "Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them.";
+      }
+    }
+
+    function addSystemBadgeMessage() {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      const type = document.getElementById("systemBadgeType").value;
+      const text = document.getElementById("systemBadgeTextInput").value.trim();
+
+      if (!text) return;
+
+      chat.messages.push({
+        id: "msg-" + Date.now(),
+        type: "system",
+        systemType: type,
+        text: text
+      });
+
+      saveState();
+      renderMessages();
+      toggleModal("systemMessageModal");
+    }
+
+    /* ----------------------------------------------------
+       11. CONTACT & CHAT CREATION / EDITING
+       ---------------------------------------------------- */
+    function openNewChatModal() {
+      document.getElementById("newChatNameInput").value = "";
+      document.getElementById("newChatStatusInput").value = "online";
+      document.getElementById("newGroupMembersInput").value = "";
+      setChatTypeForm("direct");
+      toggleModal("newChatModal");
+    }
+
+    let formChatType = "direct";
+    function setChatTypeForm(type) {
+      formChatType = type;
+      const directBtn = document.getElementById("chatTypeDirectBtn");
+      const groupBtn = document.getElementById("chatTypeGroupBtn");
+      const membersField = document.getElementById("groupMembersField");
+
+      if (type === "direct") {
+        directBtn.className = "flex-1 py-1.5 text-xs font-bold rounded border-2 border-[#128C7E] bg-teal-50 text-[#128C7E]";
+        groupBtn.className = "flex-1 py-1.5 text-xs font-bold rounded border-2 border-gray-200 text-gray-600";
+        membersField.classList.add("hidden");
+      } else {
+        groupBtn.className = "flex-1 py-1.5 text-xs font-bold rounded border-2 border-[#128C7E] bg-teal-50 text-[#128C7E]";
+        directBtn.className = "flex-1 py-1.5 text-xs font-bold rounded border-2 border-gray-200 text-gray-600";
+        membersField.classList.remove("hidden");
+      }
+    }
+
+    function saveNewChat() {
+      const name = document.getElementById("newChatNameInput").value.trim();
+      if (!name) return;
+
+      const status = document.getElementById("newChatStatusInput").value.trim() || "online";
+      const avatarInput = document.getElementById("newChatAvatarInput");
+      const membersText = document.getElementById("newGroupMembersInput").value.trim();
+      const isGroup = formChatType === "group";
+
+      const members = isGroup && membersText ? membersText.split(",").map(m => m.trim()) : [];
+
+      const proceedCreate = (avatarData) => {
+        const newChat = {
+          id: "chat-" + Date.now(),
+          name: name,
+          avatar: avatarData || DEFAULT_AVATAR,
+          status: status,
+          isGroup: isGroup,
+          members: members,
+          persona: `Chat companion for ${name}. Text like a friend on WhatsApp.`,
+          messages: [
+            { id: "m-init-enc", type: "system", systemType: "encryption", text: "Messages and calls are end-to-end encrypted." },
+            { id: "m-init-date", type: "system", systemType: "date", text: "TODAY" }
+          ]
+        };
+
+        appState.chats.unshift(newChat);
+        saveState();
+        toggleModal("newChatModal");
+        openChat(newChat.id);
+      };
+
+      if (avatarInput.files && avatarInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => proceedCreate(e.target.result);
+        reader.readAsDataURL(avatarInput.files[0]);
+      } else {
+        proceedCreate(DEFAULT_AVATAR);
+      }
+    }
+
+    function openContactDetailModal() {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      document.getElementById("detailAvatarPreview").src = chat.avatar || DEFAULT_AVATAR;
+      document.getElementById("editContactNameInput").value = chat.name;
+      document.getElementById("editContactStatusInput").value = chat.status;
+      document.getElementById("editContactPersonaInput").value = chat.persona || "";
+
+      toggleModal("contactDetailModal");
+    }
+
+    function handleAvatarChange(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("detailAvatarPreview").src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveContactDetails() {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      chat.name = document.getElementById("editContactNameInput").value.trim() || chat.name;
+      chat.status = document.getElementById("editContactStatusInput").value.trim() || "online";
+      chat.persona = document.getElementById("editContactPersonaInput").value.trim();
+      chat.avatar = document.getElementById("detailAvatarPreview").src;
+
+      // Update UI Header
+      document.getElementById("chatHeaderName").innerText = chat.name;
+      document.getElementById("chatHeaderStatus").innerText = chat.status;
+      document.getElementById("chatHeaderAvatar").src = chat.avatar;
+
+      saveState();
+      toggleModal("contactDetailModal");
+    }
+
+    /* ----------------------------------------------------
+       12. GLOBAL SETTINGS, BACKUP & IMPORT/EXPORT
+       ---------------------------------------------------- */
+    function openSettingsModal() {
+      closeAllPopups();
+      document.getElementById("apiProviderSelect").value = appSettings.provider || "groq";
+      document.getElementById("apiKeyInput").value = appSettings.apiKey || "";
+      document.getElementById("apiEndpointInput").value = appSettings.endpoint || "https://api.groq.com/openai/v1";
+      document.getElementById("apiModelInput").value = appSettings.model || "llama-3.3-70b-versatile";
+      document.getElementById("apiDefaultSystemPrompt").value = appSettings.defaultSystemPrompt || "";
+      toggleApiEndpointFields();
+      toggleModal("settingsModal");
+    }
+
+    function toggleApiEndpointFields() {
+      const provider = document.getElementById("apiProviderSelect").value;
+      const customField = document.getElementById("customEndpointField");
+      const modelInput = document.getElementById("apiModelInput");
+
+      if (provider === "custom") {
+        customField.classList.remove("hidden");
+      } else {
+        customField.classList.add("hidden");
+        if (provider === "groq") {
+          modelInput.value = "llama-3.3-70b-versatile";
+        } else if (provider === "openai") {
+          modelInput.value = "gpt-4o-mini";
+        }
+      }
+    }
+
+    function saveGlobalSettings() {
+      appSettings.provider = document.getElementById("apiProviderSelect").value;
+      appSettings.apiKey = document.getElementById("apiKeyInput").value.trim();
+      appSettings.endpoint = document.getElementById("apiEndpointInput").value.trim();
+      appSettings.model = document.getElementById("apiModelInput").value.trim();
+      appSettings.defaultSystemPrompt = document.getElementById("apiDefaultSystemPrompt").value.trim();
+
+      saveSettings();
+      toggleModal("settingsModal");
+    }
+
+    function exportDataBackup() {
+      closeAllPopups();
+      const exportObj = {
+        state: appState,
+        settings: appSettings,
+        timestamp: new Date().toISOString()
+      };
+      const jsonStr = JSON.stringify(exportObj, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `whatsapp_backup_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataBackup(event) {
+      closeAllPopups();
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.state && imported.state.chats) {
+            appState = imported.state;
+            if (imported.settings) appSettings = imported.settings;
+            saveState();
+            saveSettings();
+            renderChatList();
+            showChatList();
+          }
+        } catch (err) {
+          console.error("Invalid JSON file:", err);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAllDataConfirmation() {
+      closeAllPopups();
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+      location.reload();
+    }
+
+    function clearCurrentChatMessages() {
+      closeAllPopups();
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      if (!chat) return;
+
+      chat.messages = [
+        { id: "m-reset-enc", type: "system", systemType: "encryption", text: "Messages and calls are end-to-end encrypted." }
+      ];
+      saveState();
+      renderMessages();
+    }
+
+    /* ----------------------------------------------------
+       13. UI UTILITIES & INPUT HANDLERS
+       ---------------------------------------------------- */
+    function autoGrow(element) {
+      element.style.height = "auto";
+      element.style.height = (element.scrollHeight) + "px";
+    }
+
+    function handleInputState(input) {
+      const sendMic = document.getElementById("sendIconMic");
+      const sendArrow = document.getElementById("sendIconArrow");
+
+      if (input.value.trim().length > 0) {
+        sendMic.classList.add("hidden");
+        sendArrow.classList.remove("hidden");
+      } else {
+        sendMic.classList.remove("hidden");
+        sendArrow.classList.add("hidden");
+      }
+    }
+
+    function insertQuickEmoji(emoji) {
+      const input = document.getElementById("messageInput");
+      input.value += emoji;
+      handleInputState(input);
+      input.focus();
+    }
+
+    function handleSenderModeChange() {
+      const sel = document.getElementById("senderSelector").value;
+      if (sel === "ai") {
+        const chat = appState.chats.find(c => c.id === appState.activeChatId);
+        if (chat && !chat.status.includes("online")) {
+          chat.status = "online";
+          document.getElementById("chatHeaderStatus").innerText = "online";
+        }
+      }
+    }
+
+    function toggleModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal.classList.contains("hidden")) {
+        modal.classList.remove("hidden");
+      } else {
+        modal.classList.add("hidden");
+      }
+      lucide.createIcons();
+    }
+
+    function toggleOptionsMenu(e) {
+      e.stopPropagation();
+      const menu = document.getElementById("optionsDropdown");
+      menu.classList.toggle("hidden");
+    }
+
+    function toggleChatOptionsMenu(e) {
+      e.stopPropagation();
+      const menu = document.getElementById("chatOptionsDropdown");
+      menu.classList.toggle("hidden");
+    }
+
+    function closeAllPopups() {
+      document.getElementById("optionsDropdown").classList.add("hidden");
+      document.getElementById("chatOptionsDropdown").classList.add("hidden");
+    }
+
+    window.onclick = function(event) {
+      if (!event.target.closest("#optionsDropdown") && !event.target.closest("button[onclick*='toggleOptionsMenu']")) {
+        document.getElementById("optionsDropdown").classList.add("hidden");
+      }
+      if (!event.target.closest("#chatOptionsDropdown") && !event.target.closest("button[onclick*='toggleChatOptionsMenu']")) {
+        document.getElementById("chatOptionsDropdown").classList.add("hidden");
+      }
+    };
+
+    function triggerCallSimulation(type) {
+      const chat = appState.chats.find(c => c.id === appState.activeChatId);
+      const name = chat ? chat.name : "Contact";
+      
+      const callBanner = document.createElement("div");
+      callBanner.className = "fixed inset-0 bg-[#075E54] text-white flex flex-col items-center justify-between p-12 z-50 animate-fade-in";
+      callBanner.innerHTML = `
+        <div class="text-center mt-8">
+          <img src="${chat?.avatar || DEFAULT_AVATAR}" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white/40 object-cover" />
+          <h2 class="text-2xl font-semibold">${name}</h2>
+          <p class="text-teal-200 mt-1">WhatsApp ${type === 'video' ? 'Video' : 'Voice'} Call...</p>
+        </div>
+        <div class="flex items-center space-x-8">
+          <button onclick="this.parentElement.parentElement.remove()" class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90">
+            <i data-lucide="phone-off" class="w-8 h-8"></i>
+          </button>
+        </div>
+      `;
+      document.body.appendChild(callBanner);
+      lucide.createIcons();
+    }
+
+    function handleSearchChats(query) {
+      const resultsContainer = document.getElementById("searchResults");
+      resultsContainer.innerHTML = "";
+      if (!query.trim()) {
+        resultsContainer.innerHTML = `<div class="p-3 text-center text-gray-400">Type to find messages or contacts</div>`;
+        return;
+      }
+
+      const q = query.toLowerCase();
+      let matchedCount = 0;
+
+      appState.chats.forEach(chat => {
+        if (chat.name.toLowerCase().includes(q)) {
+          matchedCount++;
+          const item = document.createElement("div");
+          item.className = "p-2 hover:bg-gray-100 cursor-pointer flex items-center space-x-2";
+          item.onclick = () => {
+            toggleModal("searchModal");
+            openChat(chat.id);
+          };
+          item.innerHTML = `
+            <img src="${chat.avatar || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover" />
+            <div>
+              <p class="font-bold text-gray-800">${chat.name}</p>
+              <p class="text-[11px] text-gray-500">Contact</p>
+            </div>
+          `;
+          resultsContainer.appendChild(item);
+        }
+
+        chat.messages.forEach(msg => {
+          if (msg.text && msg.text.toLowerCase().includes(q)) {
+            matchedCount++;
+            const item = document.createElement("div");
+            item.className = "p-2 hover:bg-gray-100 cursor-pointer";
+            item.onclick = () => {
+              toggleModal("searchModal");
+              openChat(chat.id);
+            };
+            item.innerHTML = `
+              <p class="font-bold text-gray-800">${chat.name}</p>
+              <p class="text-xs text-gray-600 truncate">"${msg.text}"</p>
+            `;
+            resultsContainer.appendChild(item);
+          }
+        });
+      });
+
+      if (matchedCount === 0) {
+        resultsContainer.innerHTML = `<div class="p-3 text-center text-gray-400">No results found for "${escapeHtml(query)}"</div>`;
+      }
+    }
+
+    function toggleSimulationConfig() {
+      openContactDetailModal();
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      const div = document.createElement("div");
+      div.innerText = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
